@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "306919213093",
+    "firebase_url": "https://researchpeopletracking.firebaseio.com",
+    "project_id": "researchpeopletracking",
+    "storage_bucket": "researchpeopletracking.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:306919213093:android:783f356a1bc9050f22d7cc",
+        "android_client_info": {
+          "package_name": "umn.ac.id.researchtracking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "306919213093-j17dns3aa3fetcrud9sn7a3u037u5vfq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-rjRvby-hGBPiR6chrwLz7bEv6-8EiD8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "306919213093-j17dns3aa3fetcrud9sn7a3u037u5vfq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
