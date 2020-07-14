@@ -39,6 +39,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.gson.Gson;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -69,15 +70,19 @@ public class MainActivity extends Activity {
     JSONObject JSONFinal;
     JSONObject JSONCell;
     JSONObject JSONCellTemp;
+    JSONObject JSONPhoneState;
+    TextView tv;
     String currentTime = new SimpleDateFormat("dd/MM/YYYY HH:mm:ss", Locale.getDefault()).format(new Date());
-    FirebaseAuth mAuth;
-    FirebaseDatabase mDatabase;
+    FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    FirebaseDatabase mDatabase = FirebaseDatabase.getInstance();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ask_Location_permission();
+        ask_Location_permission(); //ask permission for read location
         ask_phoneState_permission(); //ask permission for read phone state
+
+        //Initialize Variable
         telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
         NetworkOperator = telephonyManager.getNetworkOperator();
         mcc = Integer.parseInt(NetworkOperator.substring(0, 3));
@@ -85,23 +90,44 @@ public class MainActivity extends Activity {
         JSONFinal = new JSONObject();
         JSONCell = new JSONObject();
         JSONCellTemp = new JSONObject();
-        mAuth = FirebaseAuth.getInstance();
-        mDatabase = FirebaseDatabase.getInstance();
-        Log.i("Firebase", String.valueOf(mAuth.getCurrentUser()));
+        JSONPhoneState = new JSONObject();
+        tv = findViewById(R.id.textView);
+
+        //send back to Login when there's no active session
+        if(mAuth.getCurrentUser() == null){
+            Intent gotoLogin = new Intent(this,Login.class);
+            startActivityForResult(gotoLogin, 1);
+        }
+
+        //check login again, required by getAllCellInfo
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ask_Location_permission(); // ask permission for fine location & coarse location
         }
         cellInfo = telephonyManager.getAllCellInfo();
-        get_phone_info();
+        get_phone_info(); //get phone side info
         get_cell_info(); //get all cell/tower info
 
-        Log.i("Info display", data);
-        for (CellInfo s : cellInfo){
-            Log.d("My array list content: ", s.toString());
+//        Display one by one cell info (used for dumping)
+//        Log.i("Info display", data);
+//        for (CellInfo s : cellInfo){
+//            Log.d("My array list content: ", s.toString());
+//        }
+//        Log.d("main", String.valueOf(cellInfo.listIterator()));//display everything.
+
+        tv.setText(data); //Append data to TextView / display
+
+        //set JSON that ready to upload
+        try {
+            JSONFinal.put("cell",JSONCell);
+            JSONFinal.put("radio",PhoneType);
+            JSONFinal.put("mcc",mcc);
+            JSONFinal.put("mnc",mnc);
+            JSONFinal.put("timestamp",currentTime);
+            JSONFinal.put("user_id",mAuth.getCurrentUser().getUid());
+
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
-        Log.d("main", String.valueOf(cellInfo.listIterator()));//display everything.
-        TextView tv = findViewById(R.id.textView);
-        tv.setText(data);
         Log.i("JSONFinal", String.valueOf(JSONFinal));
         UploadJSONtoFirebase();
 
@@ -188,16 +214,6 @@ public class MainActivity extends Activity {
             data += "\nMNC = "+mnc;
             data += "\nTimestamp = "+currentTime;
             data += "\n\n----------------------\n\n";
-        try {
-            JSONFinal.put("Radio Type",PhoneType);
-            JSONFinal.put("Operator",NetworkOperator);
-            JSONFinal.put("Mcc",mcc);
-            JSONFinal.put("Mnc",mnc);
-            JSONFinal.put("Timestamp",currentTime);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
 
     }
     public void get_cell_info(){//get cell info
@@ -250,9 +266,6 @@ public class MainActivity extends Activity {
             } catch (Exception ex) {
                 Log.i("neighboring error 2: ", ex.getMessage());
             }
-            Log.d("check variable value","Site_"+i);
-            Log.d("check variable value","Cell ID : "+cellID);
-            Log.d("check variable value","DBM : "+dbm);
             try {
                 JSONCellTemp.put("CellID",cellID);
                 JSONCellTemp.put("Dbm",dbm);
@@ -264,6 +277,8 @@ public class MainActivity extends Activity {
         }
     }
     public void UploadJSONtoFirebase(){
-        mDatabase.getReference("employee").child(ID).setValue(UpdateUser);
+        Gson GSON = new Gson();
+        PhoneState phoneState = GSON.fromJson(String.valueOf(JSONFinal),PhoneState.class);
+        mDatabase.getReference("data").child(mAuth.getCurrentUser().getUid()).setValue(phoneState);
     }
 }
