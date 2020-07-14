@@ -1,34 +1,34 @@
 {
   "project_info": {
-    "project_number": "306919213093",
-    "firebase_url": "https://researchpeopletracking.firebaseio.com",
-    "project_id": "researchpeopletracking",
-    "storage_bucket": "researchpeopletracking.appspot.com"
+    "project_number": "57342668133",
+    "firebase_url": "https://tracking-research-d2905.firebaseio.com",
+    "project_id": "tracking-research-d2905",
+    "storage_bucket": "tracking-research-d2905.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:306919213093:android:783f356a1bc9050f22d7cc",
+        "mobilesdk_app_id": "1:57342668133:android:20645b13f90b7bc08f858c",
         "android_client_info": {
           "package_name": "umn.ac.id.researchtracking"
         }
       },
       "oauth_client": [
         {
-          "client_id": "306919213093-j17dns3aa3fetcrud9sn7a3u037u5vfq.apps.googleusercontent.com",
+          "client_id": "57342668133-n7eh6ec8kffd79pq7fv3qkjhq10318k3.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyA-rjRvby-hGBPiR6chrwLz7bEv6-8EiD8"
+          "current_key": "AIzaSyAyp9Rff3EtHw1bt3Vuhd1xSR8ljlnQIaA"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "306919213093-j17dns3aa3fetcrud9sn7a3u037u5vfq.apps.googleusercontent.com",
+              "client_id": "57342668133-n7eh6ec8kffd79pq7fv3qkjhq10318k3.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

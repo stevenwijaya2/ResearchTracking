@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
@@ -27,88 +28,28 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.FirebaseDatabase;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 import static android.widget.Toast.LENGTH_SHORT;
-
-
-//public class MainActivity extends Activity {
-//
-//
-//    TextView tv;
-//
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
-//
-//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, MY_PERMISSIONS_REQUEST_ALL_PERMISSION);
-//            return;
-//        }
-//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_ALL_PERMISSION);
-//            return;
-//        }
-//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-//            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_PHONE_STATE}, MY_PERMISSIONS_REQUEST_ALL_PERMISSION);
-//            return;
-//        }
-//
-//
-//
-//
-//        tv = findViewById(R.id.textView);
-//        //instance of TelephonyManager
-//        TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-//        String PhoneType = ""; // it'll hold the type of phone i.e CDMA / GSM/ None
-//        String NetworkOperator = telephonyManager.getNetworkOperator();
-//        int mcc = Integer.parseInt(NetworkOperator.substring(0, 3));
-//        int mnc = Integer.parseInt(NetworkOperator.substring(3));
-//        String currentTime = new SimpleDateFormat("dd-MM-YYYY/HH:mm:ss", Locale.getDefault()).format(new Date());
-//        List<CellInfo> cellInfo = telephonyManager.getAllCellInfo();
-//        int phoneType = telephonyManager.getPhoneType();
-//            switch (phoneType) {
-//                case (TelephonyManager.PHONE_TYPE_CDMA):
-//                    PhoneType = "CDMA";
-//                    break;
-//                case (TelephonyManager.PHONE_TYPE_GSM):
-//                    PhoneType = "GSM";
-//                    break;
-//                case (TelephonyManager.PHONE_TYPE_NONE):
-//                    PhoneType = "NONE";
-//                    break;
-//            }
-//            // true or false for roaming or not
-//
-//            String data = "DATA : \n";
-////            data += "\n Network Type = " + PhoneType;
-////            data += "\n Network Operator = "+NetworkOperator;
-////            data += "\n MCC = "+ mcc;
-////            data += "\n MNC = "+mnc;
-////            data += "\n TimeStamp = "+currentTime;
-////            data += "\n\n----------------------\n\n";
-//            data += cellInfo.toString();
-//            for (CellInfo s : cellInfo){
-//                Log.d("My array list content: ", s.toString());
-//            }
-//            //Log.d("main","cell info"+cellInfo.listIterator());
-//            //Now we'll display the information
-//            tv.setText(data);
-//
-//    }
-//
-//}
-
 
 public class MainActivity extends Activity {
     private LocationManager mLocationManager;
@@ -129,6 +70,8 @@ public class MainActivity extends Activity {
     JSONObject JSONCell;
     JSONObject JSONCellTemp;
     String currentTime = new SimpleDateFormat("dd/MM/YYYY HH:mm:ss", Locale.getDefault()).format(new Date());
+    FirebaseAuth mAuth;
+    FirebaseDatabase mDatabase;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -142,6 +85,9 @@ public class MainActivity extends Activity {
         JSONFinal = new JSONObject();
         JSONCell = new JSONObject();
         JSONCellTemp = new JSONObject();
+        mAuth = FirebaseAuth.getInstance();
+        mDatabase = FirebaseDatabase.getInstance();
+        Log.i("Firebase", String.valueOf(mAuth.getCurrentUser()));
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ask_Location_permission(); // ask permission for fine location & coarse location
         }
@@ -149,25 +95,15 @@ public class MainActivity extends Activity {
         get_phone_info();
         get_cell_info(); //get all cell/tower info
 
-        Log.i("Info display", data);  //display everything.
+        Log.i("Info display", data);
+        for (CellInfo s : cellInfo){
+            Log.d("My array list content: ", s.toString());
+        }
+        Log.d("main", String.valueOf(cellInfo.listIterator()));//display everything.
         TextView tv = findViewById(R.id.textView);
         tv.setText(data);
-
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            public void run() {
-                if(GotLocation){
-                    try {
-                        JSONFinal.put("Latitude",String.valueOf(Latitude));
-                        JSONFinal.put("Longitude",String.valueOf(Longitude));
-                        JSONFinal.put("Cell Info", JSONCell);
-                        Log.d("location", String.valueOf(JSONFinal));
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }, 5000);   //5 seconds
+        Log.i("JSONFinal", String.valueOf(JSONFinal));
+        UploadJSONtoFirebase();
 
     }
     public void ask_Location_permission() {
@@ -184,31 +120,34 @@ public class MainActivity extends Activity {
             Intent intentAskGPS = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             startActivity(intentAskGPS);
         }
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-               Latitude = location.getLatitude();
-               Longitude = location.getLongitude();
-                //Log.d("location", String.valueOf(location.getLatitude()));
-                GotLocation = true;
+        if(statusOfGPS){
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, new LocationListener() {
+                @Override
+                public void onLocationChanged(Location location) {
+                    Latitude = location.getLatitude();
+                    Longitude = location.getLongitude();
+                    //Log.d("location", String.valueOf(location.getLatitude()));
+                    GotLocation = true;
 
-            }
+                }
 
-            @Override
-            public void onProviderDisabled(String provider) {
-                Log.d("Latitude","disable");
-            }
+                @Override
+                public void onProviderDisabled(String provider) {
+                    Log.d("Latitude","disable");
+                }
 
-            @Override
-            public void onProviderEnabled(String provider) {
-                Log.d("Latitude","enable");
-            }
+                @Override
+                public void onProviderEnabled(String provider) {
+                    Log.d("Latitude","enable");
+                }
 
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-                Log.d("Latitude","status");
-            }
-        });
+                @Override
+                public void onStatusChanged(String provider, int status, Bundle extras) {
+                    Log.d("Latitude","status");
+                }
+            });
+        }
+
     }
     public void ask_phoneState_permission() {
         // Ask Permission for first timeManifest.permission.RECORD_AUDIO
@@ -323,5 +262,8 @@ public class MainActivity extends Activity {
                 e.printStackTrace();
             }
         }
+    }
+    public void UploadJSONtoFirebase(){
+        mDatabase.getReference("employee").child(ID).setValue(UpdateUser);
     }
 }
