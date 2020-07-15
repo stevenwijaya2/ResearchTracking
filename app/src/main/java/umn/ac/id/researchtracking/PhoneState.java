@@ -5,13 +5,15 @@ public class PhoneState {
     private int mcc;
     private int mnc;
     private String timestamp;
+    private String user_id;
 
     public PhoneState(){};
-    public PhoneState(String radio,int mcc,int mnc,String timestamp){
+    public PhoneState(String radio,int mcc,int mnc,String timestamp,String user_id){
         this.radio = radio;
         this.mcc = mcc;
         this.mnc = mnc;
         this.timestamp = timestamp;
+        this.user_id = user_id;
     }
 
     public int getMcc() {
@@ -30,6 +32,10 @@ public class PhoneState {
         return timestamp;
     }
 
+    public String getUser_id() {
+        return user_id;
+    }
+
     public void setMcc(int mcc) {
         this.mcc = mcc;
     }
@@ -44,6 +50,10 @@ public class PhoneState {
 
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public void setUser_id(String user_id) {
+        this.user_id = user_id;
     }
 }
 

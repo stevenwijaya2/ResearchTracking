@@ -47,6 +47,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
@@ -72,9 +73,14 @@ public class MainActivity extends Activity {
     JSONObject JSONCellTemp;
     JSONObject JSONPhoneState;
     TextView tv;
+    int CellTotal;
+    Cell[] ObjectCell;
+
     String currentTime = new SimpleDateFormat("dd/MM/YYYY HH:mm:ss", Locale.getDefault()).format(new Date());
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
     FirebaseDatabase mDatabase = FirebaseDatabase.getInstance();
+    String UID;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,6 +103,9 @@ public class MainActivity extends Activity {
         if(mAuth.getCurrentUser() == null){
             Intent gotoLogin = new Intent(this,Login.class);
             startActivityForResult(gotoLogin, 1);
+        }
+        else {
+            UID = mAuth.getCurrentUser().getUid();
         }
 
         //check login again, required by getAllCellInfo
@@ -221,7 +230,8 @@ public class MainActivity extends Activity {
             ask_Location_permission();
             return;
         }
-        
+        CellTotal = cellInfo.size();
+        ObjectCell = new Cell[CellTotal];
         for (int i = 0; i < cellInfo.size(); ++i) {
             try {
                 CellInfo info = cellInfo.get(i);
@@ -270,7 +280,7 @@ public class MainActivity extends Activity {
                 JSONCellTemp.put("CellID",cellID);
                 JSONCellTemp.put("Dbm",dbm);
                 JSONCell.put("Cell_"+i,JSONCellTemp);
-                Log.d("check variable value","JSONCell : "+JSONCell);
+                ObjectCell[i] = new Cell(cellID,dbm);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -279,6 +289,12 @@ public class MainActivity extends Activity {
     public void UploadJSONtoFirebase(){
         Gson GSON = new Gson();
         PhoneState phoneState = GSON.fromJson(String.valueOf(JSONFinal),PhoneState.class);
-        mDatabase.getReference("data").child(mAuth.getCurrentUser().getUid()).setValue(phoneState);
+        Log.d("JSON Phone State", String.valueOf(JSONPhoneState));
+        Log.d("UID", String.valueOf(UID));
+        mDatabase.getReference("data").child(UID).setValue(phoneState);
+        for(int x = 0;x<CellTotal;x++){
+            Log.i("CELL ID ", ObjectCell[x].getCellid());
+            mDatabase.getReference("data").child(UID).child("cells").child(String.valueOf(x)).setValue(ObjectCell[x]);
+        }
     }
 }
