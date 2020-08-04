@@ -73,10 +73,8 @@ public class MainActivity extends Activity {
     JSONObject JSONFinal;
     JSONArray JSONCell;
     JSONObject JSONCellTemp;
-    JSONObject JSONPhoneState;
     TextView tv;
     int CellTotal;
-    Cell[] ObjectCell;
     Boolean AutoSynctoServer = true;
     String UID;
     long Timestamp;
@@ -143,39 +141,48 @@ public class MainActivity extends Activity {
                                 if (ActivityCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                                     ask_Location_permission(); // ask permission for fine location & coarse location
                                 }
-                                //prepeare multiple JSONObject and JSONArray to save all of the info. but later, only JSONFinal sent to server (append the other to JSONFinal later)
-                                JSONCellTemp = new JSONObject(); //contain 
-                                JSONCell = new JSONArray(); //contain multiple cell info
-                                JSONPhoneState = new JSONObject();
-                                JSONFinal = new JSONObject();
-                                data ="";
-                                telephonyManager = (TelephonyManager) getApplication().getSystemService(Context.TELEPHONY_SERVICE);
-                                cellInfo = telephonyManager.getAllCellInfo();
-                                Timestamp = Instant.now().getEpochSecond();
+                                //prepare multiple JSONObject and JSONArray to save all of the info
+                                //but later, only JSONFinal sent to server (append the other to JSONFinal later)
+                                JSONCellTemp = new JSONObject(); //contain single cell info. and append itself to JSONCell later
+                                JSONCell = new JSONArray(); //contain multiple cell info (array of JSONObject)
+                                JSONFinal = new JSONObject(); //json final that sent to server later (contain phonestate and multiple cell info)
+                                data =""; //data to show on screen later
+                                telephonyManager = (TelephonyManager) getApplication().getSystemService(Context.TELEPHONY_SERVICE);//access telephony manager that contain all phone/signal related info
+                                cellInfo = telephonyManager.getAllCellInfo();//get cell info that connected to device (return list<CellInfo> Object)
+                                Timestamp = Instant.now().getEpochSecond();//get current unix timestamp
+
+
                                 get_phone_info(); //get phone side info
                                 get_cell_info(); //get all cell/tower info
 
-                                //Display one by one cell info (used for dumping)
-                                Log.i("Info display", data);
-                                for (CellInfo s : cellInfo) {
-                                    Log.d("My array list content: ", s.toString());
-                                }
-                                Log.d("main", String.valueOf(cellInfo.listIterator()));//display everything.
+//                                //Display one by one cell info (used for dumping. can deleted later)
+//                                Log.i("Info display", data);
+//                                for (CellInfo s : cellInfo) {
+//                                    Log.d("My array list content: ", s.toString());
+//                                }
+//                                Log.d("main", String.valueOf(cellInfo.listIterator()));//display everything.
 
-                                tv.setText(data); //Append data to TextView / display
+                                tv.setText(data); //Append data to TextView (phonescreen)
 
                                 //set JSON that ready to upload
+                                //append everything to JSONFinal
                                 try {
                                     JSONFinal.put("radio", PhoneType);
                                     JSONFinal.put("mcc", mcc);
                                     JSONFinal.put("mnc", mnc);
                                     JSONFinal.put("timestamp", Timestamp);
                                     JSONFinal.put("user_id", UID);
+                                    JSONFinal.put("lat", Latitude);
+                                    JSONFinal.put("lon", Longitude);
                                     JSONFinal.put("cells", JSONCell);
 
                                 } catch (JSONException e) {
                                     e.printStackTrace();
                                 }
+
+                                //send data to server using AsyncTask
+                                //because send data to server cant executed on main thread
+                                //so AsyncTask create another thread to sent data to server
                                 AsyncT PostToServer = new AsyncT();
                                 PostToServer.execute();
 
@@ -298,57 +305,65 @@ public class MainActivity extends Activity {
             ask_Location_permission();
             return;
         }
-        CellTotal = cellInfo.size();
-        ObjectCell = new Cell[CellTotal];
+        CellTotal = cellInfo.size(); //get how many cell that connect to devices
         for (int i = 0; i < cellInfo.size(); ++i) {
             try {
+                //there are 3 kind of cell tower (GSM,CDME,LTE)
+                //and every each of that have different way to access rss(dbm) and cell id
+                // so we using if to handle it suitable to each kind
                 CellInfo info = cellInfo.get(i);
-//              Only show registered site
-              //if(info.isRegistered()){
                 if (info instanceof CellInfoGsm) //if GSM connection
                 {
                     CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
                     CellIdentityGsm identityGsm = ((CellInfoGsm) info).getCellIdentity();
+                    cellID = String.valueOf(identityGsm.getCid());//get cell id
+                    dbm = gsm.getDbm();//get rss or signal strength or dbm
+
+                    //append cell info to variable 'data' to show on screen later
                     data += "Site_" + i + "\r\n";
                     data += "Registered: " + info.isRegistered() + "\r\n";
-                    data += "cellID: " + identityGsm.getCid() + "\r\n";
-                    data += "dBm: " + gsm.getDbm() + "\r\n\r\n";
-                    cellID = String.valueOf(identityGsm.getCid());
-                    dbm = gsm.getDbm();
-
+                    data += "cellID: " + cellID + "\r\n";
+                    data += "dBm: " + dbm + "\r\n\r\n";
                 } else if (info instanceof CellInfoLte)  //if LTE connection
                 {
                     CellSignalStrengthLte lte = ((CellInfoLte) info).getCellSignalStrength();
                     CellIdentityLte identityLte = ((CellInfoLte) info).getCellIdentity();
+                    cellID = String.valueOf(identityLte.getCi());//get cell id
+                    dbm = lte.getDbm();//get rss or signal strength or dbm
+
+                    //append cell info to variable 'data' to show on screen later
                     data += "Site_" + i + "\r\n";
                     data += "Registered: " + info.isRegistered() + "\r\n";
-                    data += "cellID: " + identityLte.getCi() + "\r\n";
-                    data += "dBm: " + lte.getDbm() + "\r\n\r\n";
-                    cellID = String.valueOf(identityLte.getCi());
-                    dbm = lte.getDbm();
+                    data += "cellID: " + cellID + "\r\n";
+                    data += "dBm: " + dbm + "\r\n\r\n";
+
 
                 } else if (info instanceof CellInfoWcdma)  //if wcdma connection
                 {
                     CellSignalStrengthWcdma wcdmaS = ((CellInfoWcdma) info).getCellSignalStrength();
                     CellIdentityWcdma wcdmaid = ((CellInfoWcdma) info).getCellIdentity();
+                    cellID = String.valueOf(wcdmaid.getCid());//get cell id
+                    dbm = wcdmaS.getDbm(); //get rss or signal strength or dbm
+
+                    //append cell info to variable 'data' to show on screen later
                     data += "Site_" + i + "\r\n";
                     data += "Registered: " + info.isRegistered() + "\r\n";
                     data += "cellID: " + wcdmaid.getCid() + "\r\n";
                     data += "dBm: " + wcdmaS.getDbm() + "\r\n\r\n";
-                    cellID = String.valueOf(wcdmaid.getCid());
-                    dbm = wcdmaS.getDbm();
+
                 }
-              //}
-//              End of Only show registered site
 
             } catch (Exception ex) {
                 Log.i("neighboring error 2: ", ex.getMessage());
             }
             try {
+                //append cell id and dbm on single tower to JSONCellTemp
                 JSONCellTemp.put("cell_id",cellID);
                 JSONCellTemp.put("rss",dbm);
+
+                //append JSONCellTemp to JSONCell
+                //JSONCell = array of object that contain multiple cell info
                 JSONCell.put(JSONCellTemp);
-                ObjectCell[i] = new Cell(cellID,dbm);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -359,13 +374,11 @@ public class MainActivity extends Activity {
         @Override
         @Nullable
         protected JSONObject doInBackground(JSONObject... objects) {
-
-
+            //AsyncTask that got job to send data to server
+            //create a new thread to send data to server
+            //android prohibited send data on main thread
             try {
-                Gson gson = new Gson();
-                String JSONSend = gson.toJson(JSONFinal);
-
-                URL url = new URL("http://tracking-research.herokuapp.com/collector"); //in the real code, there is an ip and a port
+                URL url = new URL("http://tracking-research.herokuapp.com/collector"); //url server
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
@@ -374,7 +387,7 @@ public class MainActivity extends Activity {
                 conn.setDoInput(true);
 
                 DataOutputStream os = new DataOutputStream(conn.getOutputStream());
-                os.writeBytes(JSONFinal.toString());
+                os.writeBytes(JSONFinal.toString());//send JSONFinal to server
                 conn.connect();
                 os.flush();
                 os.close();
