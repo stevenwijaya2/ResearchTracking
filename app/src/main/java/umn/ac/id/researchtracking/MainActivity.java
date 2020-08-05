@@ -37,8 +37,6 @@ import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.gson.Gson;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -93,7 +91,6 @@ public class MainActivity extends Activity {
             //check if there saved UID on device , so the apps did not generate new UID
             Log.i("pref","UID Already exist");
             UID = sharedPreferences.getString("UID", "");//set saved uid from preferences to UID variable
-            Log.i("pref",sharedPreferences.getString("UID", ""));
         }
         else {
             //conditions where device didn't have UID
@@ -104,7 +101,6 @@ public class MainActivity extends Activity {
             UID = UUID.randomUUID().toString();
             editor.putString("UID", UID);
             editor.commit();
-            Log.i("pref",sharedPreferences.getString("UID", ""));
         }
 
         setContentView(R.layout.activity_main);
@@ -195,7 +191,7 @@ public class MainActivity extends Activity {
             }
         };
 
-        timer.schedule(task, 0, 1*1000);  // interval of two minute
+        timer.schedule(task, 0, 2*60*1000);  // interval of two minute
     }
 
     public void ask_Location_permission() {
